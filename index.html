@@ -10,589 +10,222 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-main: #f0f0f0;
-            --text-muted: #a0a0a0;
-            --accent-cyan: #00f3ff;
-            --accent-purple: #bc13fe;
-            --risk-low: #00ff88;
-            --risk-med: #ffaa00;
-            --risk-high: #ff1100;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background: #0f0c29;
-            background: radial-gradient(circle at top right, #1a1a2e, #0f0c29);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .background-blobs {
-            position: absolute;
-            width: 100%; height: 100%; z-index: 0; overflow: hidden;
-        }
-        
-        .blob {
-            position: absolute; filter: blur(80px); opacity: 0.5; transition: all 5s ease;
-        }
-        
-        .blob-1 {
-            top: -10%; left: -10%; width: 500px; height: 500px;
-            background: var(--accent-purple); border-radius: 50%;
-            animation: float1 10s infinite alternate;
-        }
-
-        .blob-2 {
-            bottom: -10%; right: -10%; width: 600px; height: 600px;
-            background: var(--accent-cyan); border-radius: 50%;
-            animation: float2 12s infinite alternate;
-        }
-
-        @keyframes float1 { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(50px, 50px) scale(1.1); } }
-        @keyframes float2 { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-50px, -50px) scale(1.1); } }
-
-        .dashboard-container {
-            display: flex;
-            width: 95%; max-width: 1300px; height: 85vh;
-            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border); border-radius: 20px; z-index: 1;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden;
-        }
-
-        /* LEFT PANEL: INPUT FORM */
-        .input-section {
-            flex: 1; padding: 30px 40px; border-right: 1px solid var(--glass-border);
-            display: flex; flex-direction: column; overflow-y: auto;
-        }
-        .input-section::-webkit-scrollbar { width: 8px; }
-        .input-section::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
-
-        .patient-header {
-            display: flex; align-items: center; gap: 15px;
-            background: rgba(0, 0, 0, 0.3); padding: 15px 20px;
-            border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--glass-border);
-        }
-        .patient-header .avatar {
-            width: 50px; height: 50px; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-            color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0, 243, 255, 0.3);
-        }
-        .patient-header .info h2 { margin: 0; font-size: 1.2rem; font-weight: 700; }
-        .patient-header .info p { margin: 5px 0 0 0; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.5px; }
-
-        .header { margin-bottom: 20px; }
-        .header h1 { margin: 0 0 8px 0; font-size: 1.8rem; font-weight: 700; background: linear-gradient(90deg, #fff, #a0a0a0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .header p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
-
-        .input-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px; }
-        .input-group { display: flex; flex-direction: column; gap: 6px; }
-        .input-group label { font-size: 0.85rem; color: #d0d0d0; display: flex; align-items: center; gap: 8px; font-weight: 600; }
-        .input-group label i { color: var(--accent-cyan); width: 16px; text-align: center; }
-
-        /* Status Dot Indicator */
-        .status-dot {
-            width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-left: auto;
-            background: #555; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); transition: all 0.3s ease;
-        }
-        .status-green { background: var(--risk-low); box-shadow: 0 0 8px var(--risk-low); }
-        .status-yellow { background: var(--risk-med); box-shadow: 0 0 8px var(--risk-med); }
-        .status-red { background: var(--risk-high); box-shadow: 0 0 8px var(--risk-high); }
-
-        .input-wrapper { position: relative; }
-        .input-wrapper input {
-            width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 8px;
-            padding: 10px 15px; color: white; font-size: 1rem; outline: none; transition: all 0.3s ease; box-sizing: border-box;
-        }
-        .input-wrapper input:focus { border-color: var(--accent-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); background: rgba(0, 0, 0, 0.5); }
-        .input-wrapper input::placeholder { color: rgba(255, 255, 255, 0.2); }
-
-        .analyze-btn {
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); border: none; border-radius: 10px;
-            padding: 15px; color: white; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
-            display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: auto; position: relative; overflow: hidden; z-index: 1;
-        }
-        .analyze-btn::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan)); z-index: -1; transition: opacity 0.3s ease; opacity: 0;
-        }
-        .analyze-btn:hover::before { opacity: 1; }
-        .analyze-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(188, 19, 254, 0.4); }
-        .analyze-btn:active { transform: translateY(0); }
-
-        /* RIGHT PANEL: RESULTS */
-        .results-section {
-            flex: 1; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow-y: auto;
-        }
-        .results-section::-webkit-scrollbar { width: 8px; }
-        .results-section::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
-        
-        .state-panel {
-            position: absolute; width: 90%; height: 90%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.5s ease, transform 0.5s ease; transform: translateY(20px);
-        }
-        .state-panel.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
-        
-        #state-results { position: relative; width: 100%; height: auto; display: none; margin-top: 0; justify-content: flex-start; }
-        #state-results.active { display: flex; transform: translateY(0); }
-
-        /* Empty & Loading */
-        .empty-state { text-align: center; color: var(--text-muted); }
-        .empty-state i { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; color: var(--accent-cyan); filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.3)); }
-        .empty-state h2 { font-weight: 600; margin-bottom: 10px; color: white; }
-        
-        .loader-container { text-align: center; }
-        .scanner {
-            width: 120px; height: 120px; border: 4px solid var(--glass-border); border-radius: 50%;
-            position: relative; overflow: hidden; border-top-color: var(--accent-cyan); animation: spin 1.5s linear infinite; margin: 0 auto;
-        }
-        .scanner::after {
-            content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 2px;
-            background: var(--accent-cyan); transform-origin: left; box-shadow: 0 0 20px var(--accent-cyan);
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loader-text { margin-top: 20px; font-size: 1.1rem; font-weight: 600; color: var(--accent-cyan); letter-spacing: 3px; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; text-shadow: 0 0 10px rgba(0, 243, 255, 0.8); } 50% { opacity: 0.5; text-shadow: none; } }
-
-        /* Results Display */
-        .results-top { display: flex; width: 100%; justify-content: space-around; align-items: center; margin-bottom: 20px; }
-        
-        .gauge-container { position: relative; width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; }
-        .gauge-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .gauge-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 14; }
-        .gauge-progress {
-            fill: none; stroke: var(--accent-cyan); stroke-width: 14; stroke-dasharray: 502; stroke-dashoffset: 502;
-            stroke-linecap: round; transition: stroke-dashoffset 2s cubic-bezier(0.2, 0.8, 0.2, 1), stroke 1s ease; filter: drop-shadow(0 0 10px currentColor);
-        }
-        .gauge-text-container { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .gauge-value { font-size: 2.8rem; font-weight: 700; margin: 0; line-height: 1; transition: color 1s ease; }
-        .gauge-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; }
-
-        .level-card { text-align: center; }
-        .level-text { font-size: 2rem; font-weight: 700; margin: 0 0 5px 0; text-transform: uppercase; letter-spacing: 2px; transition: color 1s ease; text-shadow: 0 0 15px currentColor; }
-        .level-sub { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
-
-        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin-bottom: 20px; }
-        .chart-box { background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 12px; padding: 15px; position: relative; }
-        .chart-box h4 { margin: 0 0 10px 0; font-size: 0.85rem; color: #d0d0d0; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
-        .chart-wrapper { position: relative; height: 140px; width: 100%; }
-
-        .clinical-advice {
-            background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border); border-radius: 15px;
-            padding: 20px 25px; width: 100%; box-sizing: border-box; box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5); position: relative; text-align: left; backdrop-filter: blur(5px);
-        }
-        .clinical-advice::before {
-            content: '\f0f1'; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; top: -15px; left: 25px;
-            background: #121025; padding: 5px 15px; border-radius: 20px; border: 1px solid var(--glass-border);
-            color: var(--accent-cyan); font-size: 1rem; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        }
-        .clinical-advice h3 { margin: 0 0 10px 0; font-size: 1.1rem; color: white; font-weight: 600; }
-        .clinical-advice p { margin: 0; color: #d0d0d0; line-height: 1.6; font-size: 0.95rem; }
-        .action-list { margin: 10px 0 0 0; padding-left: 20px; color: #fff; font-size: 0.9rem; }
-        .action-list li { margin-bottom: 5px; }
-
-        /* Theming classes */
-        .risk-high .gauge-progress { stroke: var(--risk-high); }
-        .risk-high .level-text { color: var(--risk-high); }
-        .risk-high .gauge-value { color: var(--risk-high); }
-        .risk-high .clinical-advice::before { color: var(--risk-high); border-color: rgba(255,17,0,0.3); }
-        
-        .risk-yellow .gauge-progress { stroke: var(--risk-med); }
-        .risk-yellow .level-text { color: var(--risk-med); }
-        .risk-yellow .gauge-value { color: var(--risk-med); }
-        .risk-yellow .clinical-advice::before { color: var(--risk-med); border-color: rgba(255,170,0,0.3); }
-
-        .risk-low .gauge-progress { stroke: var(--risk-low); }
-        .risk-low .level-text { color: var(--risk-low); }
-        .risk-low .gauge-value { color: var(--risk-low); }
-        .risk-low .clinical-advice::before { color: var(--risk-low); border-color: rgba(0,255,136,0.3); }
-
-        @media (max-width: 900px) {
-            .dashboard-container { flex-direction: column; height: 95vh; overflow-y: auto; }
-            .input-section { border-right: none; border-bottom: 1px solid var(--glass-border); padding: 20px; }
-            .charts-grid { grid-template-columns: 1fr; }
-        }
-    </style>
-</head>
+    <!-- Flask CSS Link -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 <body>
 
-    <div class="background-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-    </div>
-
-    <div class="dashboard-container">
-        <!-- Input Section -->
-        <div class="input-section">
-            
-            <div class="patient-header">
-                <div class="avatar"><i class="fa-solid fa-user-injured"></i></div>
-                <div class="info">
-                    <h2>Patient Name: Priya (Dummy)</h2>
-                    <p>ID: #9921 &nbsp;|&nbsp; Unit: ICU-02</p>
+    <div class="dashboard-layout">
+        
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-staff-snake"></i>
+                <h2>Med Flow</h2>
+            </div>
+            <div class="nav-menu">
+                <button class="nav-item active" data-page="page-analysis"><i class="fa-solid fa-microchip"></i> Live Analysis</button>
+                <button class="nav-item" data-page="page-db"><i class="fa-solid fa-users"></i> Patient DB</button>
+                <button class="nav-item" data-page="page-trends"><i class="fa-solid fa-chart-line"></i> Clinical Trends</button>
+            </div>
+            <div style="flex: 1;"></div>
+            <div class="user-profile">
+                <div class="avatar">MD</div>
+                <div>
+                    <h4 class="name">Dr. Mitchell</h4>
+                    <p class="role">Lead Attending</p>
                 </div>
             </div>
-
-            <div class="header">
-                <h1>Vitals Entry</h1>
-                <p>Real-time clinical data acquisition.</p>
-            </div>
-
-            <form id="prediction-form">
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label for="hr"><i class="fa-solid fa-heart-pulse"></i> Heart Rate <span class="status-dot" id="dot-hr"></span></label>
-                        <div class="input-wrapper"><input type="number" id="hr" name="hr" placeholder="e.g. 75" required></div>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="o2sat"><i class="fa-solid fa-lungs"></i> O2 Saturation <span class="status-dot" id="dot-o2sat"></span></label>
-                        <div class="input-wrapper"><input type="number" id="o2sat" name="o2sat" placeholder="e.g. 98" required></div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="temp"><i class="fa-solid fa-temperature-half"></i> Temperature <span class="status-dot" id="dot-temp"></span></label>
-                        <div class="input-wrapper"><input type="number" id="temp" name="temp" step="0.1" placeholder="e.g. 37.0" required></div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="sbp"><i class="fa-solid fa-droplet"></i> Systolic BP <span class="status-dot" id="dot-sbp"></span></label>
-                        <div class="input-wrapper"><input type="number" id="sbp" name="sbp" placeholder="e.g. 120" required></div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="map"><i class="fa-solid fa-chart-line"></i> MAP <span class="status-dot" id="dot-map"></span></label>
-                        <div class="input-wrapper"><input type="number" id="map" name="map" step="0.1" placeholder="e.g. 93.3" required></div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="dbp"><i class="fa-solid fa-droplet-slash"></i> Diastolic BP <span class="status-dot" id="dot-dbp"></span></label>
-                        <div class="input-wrapper"><input type="number" id="dbp" name="dbp" placeholder="e.g. 80" required></div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="resp"><i class="fa-solid fa-wind"></i> Respiration <span class="status-dot" id="dot-resp"></span></label>
-                        <div class="input-wrapper"><input type="number" id="resp" name="resp" placeholder="e.g. 16" required></div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="age"><i class="fa-solid fa-person-cane"></i> Age <span class="status-dot" id="dot-age"></span></label>
-                        <div class="input-wrapper"><input type="number" id="age" name="age" placeholder="e.g. 45" required></div>
-                    </div>
-                </div>
-
-                <button type="submit" class="analyze-btn">
-                    <i class="fa-solid fa-microchip"></i> Analyze Clinical Risk
-                </button>
-            </form>
         </div>
 
-        <!-- Results Section -->
-        <div class="results-section" id="results-panel">
-            
-            <div class="state-panel active" id="state-empty">
-                <div class="empty-state">
-                    <i class="fa-solid fa-briefcase-medical"></i>
-                    <h2>Awaiting Profile</h2>
-                    <p>Enter patient vitals to generate a clinical assessment.</p>
-                </div>
-            </div>
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
 
-            <div class="state-panel" id="state-loading">
-                <div class="loader-container">
-                    <div class="scanner"></div>
-                    <div class="loader-text">COMPUTING RISK...</div>
+            <!-- PAGE 1: LIVE ANALYSIS -->
+            <section id="page-analysis" class="page-section active">
+                <div class="page-header">
+                    <h1>Live Analysis</h1>
+                    <p>Real-time vitals monitoring and AI risk assessment.</p>
                 </div>
-            </div>
+                
+                <div class="analysis-grid">
+                    <!-- Form Container -->
+                    <div class="glass-card form-container">
+                        <div class="patient-header">
+                            <div class="pat-avatar"><i class="fa-solid fa-bed-pulse"></i></div>
+                            <div>
+                                <h3>Priya</h3>
+                                <p>ID: #9921 | Unit: ICU-02</p>
+                            </div>
+                        </div>
 
-            <div class="state-panel" id="state-results">
-                <div class="results-top">
-                    <div class="gauge-container">
-                        <svg class="gauge-svg" viewBox="0 0 180 180">
-                            <circle class="gauge-bg" cx="90" cy="90" r="80"></circle>
-                            <circle class="gauge-progress" id="gauge-progress" cx="90" cy="90" r="80"></circle>
-                        </svg>
-                        <div class="gauge-text-container">
-                            <div class="gauge-value"><span id="risk-value">0</span>%</div>
-                            <div class="gauge-label">Risk Factor</div>
+                        <form id="prediction-form">
+                            <div class="input-grid">
+                                <div class="input-group">
+                                    <label for="HR"><i class="fa-solid fa-heart-pulse"></i> Heart Rate <span class="status-dot" id="dot-hr"></span></label>
+                                    <input type="number" id="HR" placeholder="bpm" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="O2Sat"><i class="fa-solid fa-lungs"></i> O2 Saturation <span class="status-dot" id="dot-o2sat"></span></label>
+                                    <input type="number" id="O2Sat" placeholder="%" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="Temp"><i class="fa-solid fa-temperature-half"></i> Temperature <span class="status-dot" id="dot-temp"></span></label>
+                                    <input type="number" id="Temp" step="0.1" placeholder="°C" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="SBP"><i class="fa-solid fa-droplet"></i> Systolic BP <span class="status-dot" id="dot-sbp"></span></label>
+                                    <input type="number" id="SBP" placeholder="mmHg" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="MAP"><i class="fa-solid fa-chart-line"></i> MAP <span class="status-dot" id="dot-map"></span></label>
+                                    <input type="number" id="MAP" step="0.1" placeholder="mmHg" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="DBP"><i class="fa-solid fa-droplet-slash"></i> Diastolic BP <span class="status-dot" id="dot-dbp"></span></label>
+                                    <input type="number" id="DBP" placeholder="mmHg" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="Resp"><i class="fa-solid fa-wind"></i> Respiration <span class="status-dot" id="dot-resp"></span></label>
+                                    <input type="number" id="Resp" placeholder="breaths/min" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="Age"><i class="fa-solid fa-person-cane"></i> Age <span class="status-dot" id="dot-age"></span></label>
+                                    <input type="number" id="Age" placeholder="Years" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-primary" id="analyze-btn">
+                                <i class="fa-solid fa-microchip"></i> Run AI Analysis
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Results Container -->
+                    <div class="glass-card results-container">
+                        
+                        <!-- Empty State -->
+                        <div id="empty-state" class="state-panel active">
+                            <i class="fa-solid fa-briefcase-medical"></i>
+                            <h2>Ready for Analysis</h2>
+                            <p>Enter patient vitals and click run.</p>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="loading-state" class="state-panel">
+                            <div class="scanner"></div>
+                            <div class="neon-text">COMPUTING RISK...</div>
+                        </div>
+
+                        <!-- Results State -->
+                        <div id="results-state" class="state-panel results-layout">
+                            <div class="results-top">
+                                <div class="gauge-container">
+                                    <svg class="gauge-svg" viewBox="0 0 160 160">
+                                        <circle class="gauge-bg" cx="80" cy="80" r="70"></circle>
+                                        <circle class="gauge-progress" id="gauge-bar" cx="80" cy="80" r="70"></circle>
+                                    </svg>
+                                    <div class="gauge-text-container">
+                                        <div class="gauge-value"><span id="risk-value">0</span>%</div>
+                                        <div class="gauge-label">Risk Factor</div>
+                                    </div>
+                                </div>
+                                <div class="level-card">
+                                    <h2 class="level-text" id="level-display">---</h2>
+                                    <p class="level-sub">Severity Index</p>
+                                </div>
+                            </div>
+                            
+                            <div class="charts-grid">
+                                <div class="chart-box">
+                                    <h4>Risk Progression (Last 6 Hours)</h4>
+                                    <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+                                </div>
+                                <div class="chart-box">
+                                    <h4>Top Risk Drivers (XAI)</h4>
+                                    <div class="chart-wrapper"><canvas id="driverChart"></canvas></div>
+                                </div>
+                            </div>
+
+                            <div class="clinical-advice">
+                                <h3>Clinical Recommendation</h3>
+                                <p id="recommendation-text">Awaiting data...</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 2: PATIENT DATABASE -->
+            <section id="page-db" class="page-section">
+                <div class="page-header">
+                    <h1>Patient Database</h1>
+                    <p>Search and manage patient records.</p>
+                </div>
+                <div class="glass-card full-height">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="search-input" placeholder="Search by Name or ID...">
                         </div>
                     </div>
-                    <div class="level-card">
-                        <h2 class="level-text" id="level-display">---</h2>
-                        <p class="level-sub">Severity Index</p>
+                    <div class="table-responsive">
+                        <table class="patient-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Patient ID</th>
+                                    <th>Age</th>
+                                    <th>Risk Score</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patient-tbody">
+                                <!-- JS population -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            </section>
 
-                <div class="charts-grid">
-                    <div class="chart-box">
-                        <h4>Risk Progression (Last 6 Hours)</h4>
-                        <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+            <!-- PAGE 3: CLINICAL TRENDS -->
+            <section id="page-trends" class="page-section">
+                <div class="page-header">
+                    <h1>Clinical Trends</h1>
+                    <p>Longitudinal tracking of patient vitals over 24 hours.</p>
+                </div>
+                <div class="trends-grid">
+                    <div class="glass-card trend-chart-box">
+                        <h3>Heart Rate Trend</h3>
+                        <div class="chart-wrapper"><canvas id="trendHR"></canvas></div>
                     </div>
-                    <div class="chart-box">
-                        <h4>Top Risk Drivers</h4>
-                        <div class="chart-wrapper"><canvas id="driverChart"></canvas></div>
+                    <div class="glass-card trend-chart-box">
+                        <h3>Blood Pressure (SBP/DBP)</h3>
+                        <div class="chart-wrapper"><canvas id="trendBP"></canvas></div>
+                    </div>
+                    <div class="glass-card trend-chart-box">
+                        <h3>O2 Saturation</h3>
+                        <div class="chart-wrapper"><canvas id="trendO2"></canvas></div>
+                    </div>
+                    <div class="glass-card trend-chart-box">
+                        <h3>Temperature Trend</h3>
+                        <div class="chart-wrapper"><canvas id="trendTemp"></canvas></div>
+                    </div>
+                    <div class="glass-card trend-chart-box">
+                        <h3>Mean Arterial Pressure (MAP)</h3>
+                        <div class="chart-wrapper"><canvas id="trendMAP"></canvas></div>
+                    </div>
+                    <div class="glass-card trend-chart-box">
+                        <h3>Respiration Rate</h3>
+                        <div class="chart-wrapper"><canvas id="trendResp"></canvas></div>
                     </div>
                 </div>
+            </section>
 
-                <div class="clinical-advice">
-                    <h3>Clinical Recommendation</h3>
-                    <p id="recommendation-text">Awaiting analysis data...</p>
-                    <ul class="action-list" id="action-list"></ul>
-                </div>
-            </div>
-            
         </div>
     </div>
 
-    <script>
-        // Chart.js Global Config for Dark Theme
-        Chart.defaults.color = '#a0a0a0';
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
-        Chart.defaults.font.family = 'Inter';
-        
-        let trendChartObj = null;
-        let driverChartObj = null;
-
-        // Smart Input Thresholds Logic
-        const thresholds = {
-            hr: { min: 60, max: 100, critMin: 50, critMax: 120 },
-            o2sat: { min: 95, max: 100, critMin: 90, critMax: 100 },
-            temp: { min: 36.5, max: 37.5, critMin: 35.0, critMax: 38.5 },
-            sbp: { min: 90, max: 120, critMin: 80, critMax: 140 },
-            dbp: { min: 60, max: 80, critMin: 50, critMax: 90 },
-            map: { min: 70, max: 100, critMin: 60, critMax: 110 },
-            resp: { min: 12, max: 20, critMin: 8, critMax: 24 }
-        };
-
-        function evaluateStatus(val, key) {
-            if (!thresholds[key]) return 'status-green'; // Default/Age
-            const t = thresholds[key];
-            if (val < t.critMin || val > t.critMax) return 'status-red';
-            if (val < t.min || val > t.max) return 'status-yellow';
-            return 'status-green';
-        }
-
-        // Add event listeners to inputs to update indicator dots
-        document.querySelectorAll('.input-wrapper input').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                const dot = document.getElementById(`dot-${e.target.id}`);
-                if (dot) {
-                    dot.className = 'status-dot';
-                    if (!isNaN(val)) {
-                        dot.classList.add(evaluateStatus(val, e.target.id));
-                    }
-                }
-            });
-        });
-
-        function switchState(stateId) {
-            document.querySelectorAll('.state-panel').forEach(panel => {
-                panel.classList.remove('active');
-            });
-            document.getElementById(stateId).classList.add('active');
-        }
-
-        document.getElementById('prediction-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const resultsPanel = document.getElementById('state-results');
-            switchState('state-loading');
-            
-            // Collect Form values
-            const payload = {
-                HR: parseFloat(document.getElementById('hr').value),
-                O2Sat: parseFloat(document.getElementById('o2sat').value),
-                Temp: parseFloat(document.getElementById('temp').value),
-                SBP: parseFloat(document.getElementById('sbp').value),
-                MAP: parseFloat(document.getElementById('map').value),
-                DBP: parseFloat(document.getElementById('dbp').value),
-                Resp: parseFloat(document.getElementById('resp').value),
-                Age: parseFloat(document.getElementById('age').value)
-            };
-
-            try {
-                // Minimum loading time
-                const minWait = new Promise(resolve => setTimeout(resolve, 1500));
-                
-                const fetchPromise = fetch('http://127.0.0.1:5000/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                }).then(res => {
-                    if (!res.ok) throw new Error('API Error');
-                    return res.json();
-                }).catch(err => {
-                    console.warn("Using fallback clinical logic", err);
-                    return simulateClinicalAnalysis(payload);
-                });
-                
-                const [_, data] = await Promise.all([minWait, fetchPromise]);
-                
-                document.getElementById('gauge-progress').style.strokeDashoffset = '502'; // reset
-                switchState('state-results');
-                
-                // Set theme and recommendation based on level
-                resultsPanel.className = 'state-panel active';
-                const actionList = document.getElementById('action-list');
-                actionList.innerHTML = '';
-
-                if (data.level === 'High') {
-                    resultsPanel.classList.add('risk-high');
-                    document.getElementById('recommendation-text').textContent = "CRITICAL WARNING: Patient meets criteria for immediate intervention.";
-                    ['Alert Code Blue / RRT team immediately.', 'Prep for potential intubation / airway support.', 'Initiate ICU transfer protocols.'].forEach(act => {
-                        let li = document.createElement('li'); li.textContent = act; actionList.appendChild(li);
-                    });
-                } else if (data.level === 'Moderate') {
-                    resultsPanel.classList.add('risk-yellow');
-                    document.getElementById('recommendation-text').textContent = "ELEVATED CONCERN: Vitals show signs of instability.";
-                    ['Increase monitoring frequency to q1h.', 'Review labs and recent medications.', 'Notify rounding physician for assessment.'].forEach(act => {
-                        let li = document.createElement('li'); li.textContent = act; actionList.appendChild(li);
-                    });
-                } else {
-                    resultsPanel.classList.add('risk-low');
-                    document.getElementById('recommendation-text').textContent = "STABLE: Vitals are within expected baseline parameters.";
-                    ['Continue standard care plan.', 'Maintain current monitoring schedule.'].forEach(act => {
-                        let li = document.createElement('li'); li.textContent = act; actionList.appendChild(li);
-                    });
-                }
-                
-                setTimeout(() => {
-                    const r = 80; const circ = 2 * Math.PI * r; // ~502
-                    const offset = circ - (circ * data.risk) / 100;
-                    document.getElementById('gauge-progress').style.strokeDashoffset = offset;
-                    
-                    animateValue("risk-value", 0, data.risk, 1500);
-                    document.getElementById('level-display').textContent = `${data.level}`;
-                    
-                    renderCharts(data.risk, data.drivers, data.level);
-                }, 100);
-
-            } catch (error) {
-                console.error("Error fetching prediction:", error);
-                alert("Failed to connect to backend server.");
-                switchState('state-empty');
-            }
-        });
-
-        // Simulate logic to calculate top drivers from inputs if API unavailable
-        function simulateClinicalAnalysis(p) {
-            let drivers = [];
-            const diff = (val, target, mult) => Math.abs(val - target) * mult;
-            
-            if (p.HR > 100 || p.HR < 60) drivers.push({ name: 'HR', score: diff(p.HR, 80, 0.5) });
-            if (p.Temp > 38 || p.Temp < 35.5) drivers.push({ name: 'Temp', score: diff(p.Temp, 37, 5) });
-            if (p.O2Sat < 95) drivers.push({ name: 'O2 Sat', score: diff(p.O2Sat, 98, 2) });
-            if (p.SBP > 140 || p.SBP < 90) drivers.push({ name: 'SBP', score: diff(p.SBP, 115, 0.4) });
-            if (p.Resp > 20 || p.Resp < 12) drivers.push({ name: 'Resp', score: diff(p.Resp, 16, 1.5) });
-
-            drivers.sort((a,b) => b.score - a.score);
-            let topDrivers = drivers.slice(0, 3).map(d => ({ name: d.name, value: Math.min(Math.round(d.score*10), 100) }));
-            
-            if(topDrivers.length === 0) topDrivers = [{name: 'Age Factor', value: 15}, {name: 'Baseline', value: 5}];
-
-            let totalAbnormality = drivers.reduce((acc, curr) => acc + curr.score, 0);
-            let risk = Math.min(Math.round(totalAbnormality * 3 + (p.Age > 65 ? 15 : 5)), 98);
-            if (risk < 8) risk = Math.floor(Math.random() * 10 + 2); // baseline minimum
-            
-            let level = 'Low';
-            if (risk > 70) level = 'High';
-            else if (risk > 35) level = 'Moderate';
-
-            return { risk, level, drivers: topDrivers };
-        }
-
-        function renderCharts(currentRisk, drivers, level) {
-            const trendCtx = document.getElementById('trendChart').getContext('2d');
-            const driverCtx = document.getElementById('driverChart').getContext('2d');
-            
-            // Determine dynamic colors for charts based on level
-            let themeColor = '#00ff88'; // low
-            if (level === 'High') themeColor = '#ff1100';
-            else if (level === 'Moderate') themeColor = '#ffaa00';
-
-            // Generate mock historical data leading up to current risk
-            let history = [
-                Math.max(currentRisk - 30, 5), Math.max(currentRisk - 25, 8), 
-                Math.max(currentRisk - 20, 10), Math.max(currentRisk - 10, 15), 
-                Math.max(currentRisk - 5, 20), currentRisk
-            ];
-
-            if (trendChartObj) trendChartObj.destroy();
-            trendChartObj = new Chart(trendCtx, {
-                type: 'line',
-                data: {
-                    labels: ['-5h', '-4h', '-3h', '-2h', '-1h', 'Now'],
-                    datasets: [{
-                        label: 'Risk %',
-                        data: history,
-                        borderColor: themeColor,
-                        backgroundColor: themeColor + '33', // with opacity
-                        tension: 0.4,
-                        fill: true,
-                        pointBackgroundColor: '#0f0c29',
-                        pointBorderColor: themeColor,
-                        pointBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, max: 100, ticks: { maxTicksLimit: 5 } },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-
-            if (driverChartObj) driverChartObj.destroy();
-            driverChartObj = new Chart(driverCtx, {
-                type: 'bar',
-                data: {
-                    labels: drivers.map(d => d.name),
-                    datasets: [{
-                        label: 'Impact Score',
-                        data: drivers.map(d => d.value),
-                        backgroundColor: themeColor,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { beginAtZero: true, max: 100, display: false },
-                        y: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        // Animated Number Counter
-        function animateValue(id, start, end, duration) {
-            if (start === end) return;
-            var range = end - start;
-            var current = start;
-            var increment = end > start ? 1 : -1;
-            var stepTime = Math.abs(Math.floor(duration / range));
-            var obj = document.getElementById(id);
-            var timer = setInterval(function() {
-                current += increment;
-                obj.innerHTML = current;
-                if (current == end) {
-                    clearInterval(timer);
-                }
-            }, stepTime);
-        }
-    </script>
+    <!-- Flask JS Link -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
